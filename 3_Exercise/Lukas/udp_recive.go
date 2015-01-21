@@ -1,5 +1,5 @@
 // Go 1.2
-// go run threads_in_go.go
+// go run udp_recive.go
 
 package main
 
@@ -17,7 +17,7 @@ func udp_receive(){
     fmt.Println("receive start")
     var buf [1024]byte
 
-    addr, err := net.ResolveUDPAddr("udp", ":2222")
+    addr, err := net.ResolveUDPAddr("udp", ":30000")
     if err != nil {
         fmt.Println("error resolve UDP-address")
         fmt.Println(err)
@@ -31,19 +31,17 @@ func udp_receive(){
         return
     }
 
+    defer sock.Close()
+
     for {
-        fmt.Println("for")
         rlen, remote, err := sock.ReadFromUDP(buf[:])
         if err != nil {
             fmt.Println("error reading from UDP", remote)
             fmt.Println(err)
             return
         }
-        fmt.Println(rlen)
-        fmt.Println(string(buf[:rlen]))
-        if rlen > 0 {
-        //messages <- true
-        }
+        fmt.Println("Recived", rlen ,"Byte from", remote, ".")
+        fmt.Println("The message is:",string(buf[:]))
     }
     fmt.Println("receive done")
 }
@@ -52,8 +50,8 @@ func udp_receive(){
 func main(){
     runtime.GOMAXPROCS(runtime.NumCPU())
    
-    go udp_receive()         
-    <- messages
+    udp_receive()         
+    
 
     fmt.Println("Inside main! This is i: ");
 }
