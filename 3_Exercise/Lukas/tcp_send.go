@@ -7,37 +7,43 @@ import
     "net"
 )
 
-
-
-
-
-
 func main(){
     runtime.GOMAXPROCS(runtime.NumCPU())
           
-    serverAddr :="dieholzkatze.servebeer.com:8888"
 
-    tcpAddr, err := net.ResolveTCPAddr("tcp", serverAddr)
+    ln, err := net.Listen("tcp", ":2222")
     if err != nil {
-    fmt.Println("error resolve TCP-address")
+    fmt.Println("error setting up listen")
     fmt.Println(err)
     }
 
-    conn, err := net.DialTCP("tcp", nil, tcpAddr)
+    conn, err := ln.Accept()
     if err != nil {
 		fmt.Println("Dial failed:")
 		fmt.Println(err)
 	}
 
- 	reply := make([]byte, 1024)
- 
-	_, err = conn.Read(reply)
-	if err != nil {
-		println("Write to server failed:")
-		fmt.Println(err)
-	} 
-	fmt.Println(string(reply[:]))
+    reply := make([]byte, 1024)
+    _, err = conn.Read(reply)
+    if err != nil {
+        println("Write to server failed:")
+        println(err)
+    } 
+    fmt.Println(string(reply[:]))
 
+    sendString := make([]byte, 1024)
+    sendString = []byte("Patrik and Lukas msg\x00")
+    _, err = conn.Write(sendString)
+    if err != nil {
+        println("Write to server failed:")
+        println(err)
+    } 
 
-    fmt.Println("Inside main! This is i: ");
+    _, err = conn.Read(reply)
+    if err != nil {
+        println("Write to server failed:")
+        println(err)
+    }
+    fmt.Println(string(reply[:]))
+
 }

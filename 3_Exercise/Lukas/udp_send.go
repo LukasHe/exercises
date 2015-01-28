@@ -10,7 +10,7 @@ import (
 func main() {
     // arrayToSend := []byte("This is the ? Message\n")
     var msgCounter int = 0
-    serverAddr :=":30000"
+    serverAddr :="129.241.187.136:20018"
     conn, err := net.Dial("udp", serverAddr)
 
     if err != nil {
