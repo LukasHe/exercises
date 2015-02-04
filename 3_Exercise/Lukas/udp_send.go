@@ -8,9 +8,11 @@ import (
 )
 
 func main() {
+    fmt.Println("start main")
     // arrayToSend := []byte("This is the ? Message\n")
     var msgCounter int = 0
-    serverAddr :="129.241.187.136:20018"
+    serverAddr :="129.241.187.255:30018"
+    fmt.Println("start Dail")
     conn, err := net.Dial("udp", serverAddr)
 
     if err != nil {

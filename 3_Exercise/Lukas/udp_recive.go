@@ -16,14 +16,14 @@ func udp_receive(){
 
     fmt.Println("receive start")
     var buf [1024]byte
-
-    addr, err := net.ResolveUDPAddr("udp", ":20018")
+    fmt.Println("start resolve")
+    addr, err := net.ResolveUDPAddr("udp", ":22022")
     if err != nil {
         fmt.Println("error resolve UDP-address")
         fmt.Println(err)
         return
     }
-
+    fmt.Println("start ")
     sock, err := net.ListenUDP("udp", addr)
     if err != nil {
         fmt.Println("error listen to UDP")
