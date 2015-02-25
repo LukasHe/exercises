@@ -8,7 +8,7 @@ import "fmt"
 import "time"
 
 
-func DriverInit(ledOnChan, ledOffChan chan int){
+func DriverInit(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan string){
 	//func DriverInit(ledChan, motorDirChan, buttonChan, sensorChan chan string){
 	lightArray :=[...] int {
 		LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1,
@@ -28,14 +28,38 @@ func DriverInit(ledOnChan, ledOffChan chan int){
     }
     time.Sleep(1000*time.Millisecond)
     // set everything to zero
-fmt.Println(LIGHT_DOWN3)
 
 	//go driver(ledChan, motorDirChan, buttonChan, sensorChan)
-	go driver(ledOnChan, ledOffChan)
+	go driver(ledOnChan, ledOffChan, sensorChan, motorDirChan)
 }
 
 //func driver(ledChan chan string, motorDirChan chan string, buttonChan chan string, sensorChan chan string)
-func driver(ledOnChan, ledOffChan chan int){
+func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan string){
+
+    sensorArray :=[...]int{
+        SENSOR_FLOOR1, SENSOR_FLOOR2, 
+        SENSOR_FLOOR3, SENSOR_FLOOR4} 
+    oldSensorValue := [4]int{0,0,0,0}
+    currentSensorValue := 0
+
+//****************MAP***MAP**MAP***MAP******************************
+//****************MAP***MAP**MAP***MAP******************************
+//****************MAP***MAP**MAP***MAP******************************
+//****************MAP***MAP**MAP***MAP******************************
+
+
+
+    buttonArray :=[...]int{
+        BUTTON_COMMAND1, BUTTON_COMMAND2, 
+        BUTTON_COMMAND3, BUTTON_COMMAND4,
+        BUTTON_UP1, BUTTON_UP2,
+        BUTTON_UP3, BUTTON_DOWN2,
+        BUTTON_DOWN3, BUTTON_DOWN4,
+        BUTTON_STOP} 
+    oldButtonValue := [4]int{0,0,0,0,0,0,0,0,0,0,0}
+    currentButtonValue := 0
+    
+
 	for{
 		select {
 			case ledOnOrder := <-ledOnChan:
@@ -43,8 +67,40 @@ func driver(ledOnChan, ledOffChan chan int){
 			case ledOffOrder := <- ledOffChan:
 					C.io_set_bit(C.int(ledOffOrder))
 			case motorDir := <-motorDirChan:
-					
+			        fmt.Println(motorDir)
+					if motorDir == "UP"{
+					    C.io_clear_bit(MOTORDIR);
+                        C.io_write_analog(MOTOR, 2800);
+					} else if motorDir == "DOWN"{
+					    C.io_set_bit(MOTORDIR);
+                        C.io_write_analog(MOTOR, 2800);
+					} else{
+                        C.io_write_analog(MOTOR, 0);
+					}
+		    default:
 		}
+		for index, floorSensor := range sensorArray{
+		    currentSensorValue = int(C.io_read_bit(C.int(floorSensor)))
+		    if oldSensorValue[index] != currentSensorValue{
+		        fmt.Println("Nr.", index, ":", currentSensorValue)
+		        oldSensorValue[index] = currentSensorValue
+		        if currentSensorValue = 1 {
+		            sensorChan <- index
+		        }
+		    }
+		}
+		
+		for _, button := range buttonArray{
+		    currentButtonValue = int(C.io_read_bit(C.int(button)))
+		    if oldSensorValue[index] != currentButtonValue{
+		        fmt.Println("Nr.", index, ":", currentSensorValue)
+		        oldButtonValue[index] = currentButtonValue
+		        if currentButtonValue = 1 {
+		            buttonChan <- button
+		        }
+		    }
+		}
+					
 	}
 }
 			
