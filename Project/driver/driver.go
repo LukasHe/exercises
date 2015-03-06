@@ -8,8 +8,8 @@ import "fmt"
 import "time"
 
 
-func DriverInit(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan string){
-	//func DriverInit(ledChan, motorDirChan, buttonChan, sensorChan chan string){
+func DriverInit(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan chan string){
+	
 	lightArray :=[...] int {
 		LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1,
     	LIGHT_UP2, LIGHT_DOWN2, LIGHT_COMMAND2,
@@ -17,37 +17,20 @@ func DriverInit(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan st
     	LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4,
     	LIGHT_STOP, LIGHT_DOOR_OPEN,
     	LIGHT_FLOOR_IND1, LIGHT_FLOOR_IND2}
-	// Init hardware
-    if C.io_init() != 1 {
-    	//make error
-    	fmt.Println("error in io_init")
-    }
-
-    for i := 0; i < len(lightArray); i++ {
-    	C.io_clear_bit(C.int(lightArray[i]))
-    }
-    time.Sleep(1000*time.Millisecond)
-    // set everything to zero
-
-	//go driver(ledChan, motorDirChan, buttonChan, sensorChan)
-	go driver(ledOnChan, ledOffChan, sensorChan, motorDirChan)
-}
-
-//func driver(ledChan chan string, motorDirChan chan string, buttonChan chan string, sensorChan chan string)
-func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan string){
-
+    	
     sensorArray :=[...]int{
         SENSOR_FLOOR1, SENSOR_FLOOR2, 
         SENSOR_FLOOR3, SENSOR_FLOOR4} 
     oldSensorValue := [4]int{0,0,0,0}
     currentSensorValue := 0
 
-//****************MAP***MAP**MAP***MAP******************************
-//****************MAP***MAP**MAP***MAP******************************
-//****************MAP***MAP**MAP***MAP******************************
-//****************MAP***MAP**MAP***MAP******************************
-
-
+    buttonNameArray :=[...]string{
+        "BUTTON_COMMAND1", "BUTTON_COMMAND2", 
+        "BUTTON_COMMAND3", "BUTTON_COMMAND4",
+        "BUTTON_UP1", "BUTTON_UP2",
+        "BUTTON_UP3", "BUTTON_DOWN2",
+        "BUTTON_DOWN3", "BUTTON_DOWN4",
+        "BUTTON_STOP"}
 
     buttonArray :=[...]int{
         BUTTON_COMMAND1, BUTTON_COMMAND2, 
@@ -56,11 +39,31 @@ func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan string
         BUTTON_UP3, BUTTON_DOWN2,
         BUTTON_DOWN3, BUTTON_DOWN4,
         BUTTON_STOP} 
-    oldButtonValue := [4]int{0,0,0,0,0,0,0,0,0,0,0}
+    oldButtonValue := []int{0,0,0,0,0,0,0,0,0,0,0}
     currentButtonValue := 0
-    
+	
+	// Init hardware
+    if C.io_init() != 1 {
+    	//make error
+    	fmt.Println("error in io_init")
+    }
 
+    // Set everything to zero
+    for i := 0; i < len(lightArray); i++ {
+    	C.io_clear_bit(C.int(lightArray[i]))
+    }
+    time.Sleep(100*time.Millisecond)
+    
+    // Start the Hardwaredriver as thread
+	go driver(ledOnChan, ledOffChan, sensorChan, motorDirChan,buttonChan)
+}
+
+
+func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan chan string){
+    
 	for{
+	
+	    //Check LED and Motor Channel for updates and apply them to the hardware.
 		select {
 			case ledOnOrder := <-ledOnChan:
 					C.io_set_bit(C.int(ledOnOrder))
@@ -79,24 +82,27 @@ func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan chan string
 					}
 		    default:
 		}
+		
+		//Go throug all Sensors and send index of the active ones on channel.
 		for index, floorSensor := range sensorArray{
 		    currentSensorValue = int(C.io_read_bit(C.int(floorSensor)))
 		    if oldSensorValue[index] != currentSensorValue{
-		        fmt.Println("Nr.", index, ":", currentSensorValue)
+		        fmt.Println("Sensor at floot:.", index, ":", currentSensorValue)
 		        oldSensorValue[index] = currentSensorValue
-		        if currentSensorValue = 1 {
+		        if currentSensorValue == 1 {
 		            sensorChan <- index
 		        }
 		    }
 		}
 		
-		for _, button := range buttonArray{
+		//Go throug all Buttons and send changed buttons on channel.
+		for index, button := range buttonArray{
 		    currentButtonValue = int(C.io_read_bit(C.int(button)))
-		    if oldSensorValue[index] != currentButtonValue{
-		        fmt.Println("Nr.", index, ":", currentSensorValue)
+		    if oldButtonValue[index] != currentButtonValue{
+		        fmt.Println(buttonNameArray[index], ":", currentButtonValue)
 		        oldButtonValue[index] = currentButtonValue
-		        if currentButtonValue = 1 {
-		            buttonChan <- button
+		        if currentButtonValue == 1 {
+		            buttonChan <- buttonNameArray[index]
 		        }
 		    }
 		}
