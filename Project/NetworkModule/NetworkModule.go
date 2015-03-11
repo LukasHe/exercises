@@ -6,21 +6,26 @@ import (
 "time"
 )
 
-func sender(sendChannel chan string) {
-	message := ""
-	broadcastAddr := "129.241.187.255:22022"
+func NetworkInit(sendChannel, newOrderChan, doneOrderChan, bidChan chan string){
+	go sender(sendChannel)
+	go receiver(newOrderChan, doneOrderChan, bidChan)
+}
 
+func sender(sendChannel chan string) {
+	broadcastAddr := "129.241.187.255:22022"
+	message := ""
+	
+	//Connect to broadcastAddr using UDP.
 	udpBroadcast, err := net.Dial("udp", broadcastAddr)
+
 	if err != nil {
 		fmt.Println("Could not resolve udp address or connect to it.")
 		fmt.Println(err)
 		return
 	}
-	
 	defer udpBroadcast.Close()
 
 	for {
-		time.Sleep(100*time.Millisecond)
 		message =<- sendChannel
 		_, err = udpBroadcast.Write([]byte(message))
 		if err != nil {
@@ -28,14 +33,15 @@ func sender(sendChannel chan string) {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println(message)
+		//fmt.Println("Send:",message)
+		time.Sleep(10*time.Millisecond)
 	}		
 }
 
-func Receiver() {
-	
+func receiver(newOrderChan, doneOrderChan, bidChan chan string) {
 	var receiveBuf [1024]byte
 
+	//Create an  UDPAddr struct and listens to the given port.
 	udpAddr, err := net.ResolveUDPAddr("udp", ":22022")
 	if err != nil {
 		fmt.Println("Error resolve UDP-address")
@@ -48,6 +54,7 @@ func Receiver() {
 		fmt.Println(err)
 		return
 	}
+	defer udpReceive.Close()
 
 	for {
 		rlen, remote, err := udpReceive.ReadFromUDP(receiveBuf[:])
@@ -56,8 +63,18 @@ func Receiver() {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("Recived", rlen ,"Byte from", remote, ".")
-		fmt.Println("The message is:",string(receiveBuf[:]))
+		//fmt.Println("Recived", rlen ,"Byte from", remote, ".")
+		//fmt.Println("The message is:",string(receiveBuf[:]))
+		switch {
+			case "D" == string(receiveBuf[0]):
+				doneOrderChan <- string(receiveBuf[1:rlen])
+			case "N" == string(receiveBuf[0]):
+				newOrderChan<- string(receiveBuf[1:rlen])
+			case "B" == string(receiveBuf[0]):
+				bidChan <- string(receiveBuf[1:rlen])
+			default:
+				time.Sleep(10*time.Millisecond)	
+		}
 	}
 
 }

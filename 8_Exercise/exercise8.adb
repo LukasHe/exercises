@@ -35,15 +35,8 @@ procedure exercise8 is
       	
       	end Wait_Until_Aborted;
       	
-      	
-      	
-      		
-            ------------------------------------------
-            -- PART 3: Complete the exit protocol here
-            ------------------------------------------
-       
 
-        procedure Signal_Abort is
+	procedure Signal_Abort is
         begin
             Aborted := True;
 
@@ -60,25 +53,20 @@ procedure exercise8 is
 
     
     function Unreliable_Slow_Add (x : Integer) return Integer is
-    Error_Rate : Constant := 0.15;  -- (between 0 and 1)
-    rand	: float	:= Random(Gen);
-    y		: integer	:= 0;
-    begin
-	if rand > Error_Rate then
+    	Error_Rate : Constant := 0.15;  -- (between 0 and 1)
+    	rand	: float	:= Random(Gen);
+    	y		: integer	:= 0;
+    	begin
+			if rand > Error_Rate then
 	
-		delay Duration(8.0 * rand);
-		y := x + 10;
-	else
-		delay Duration(rand);
-		raise Count_Failed;
-	end if;
-	return y;
-
-
-    end Unreliable_Slow_Add;
-
-
-
+			delay Duration(8.0 * rand);
+			y := x + 10;
+			else
+				delay Duration(rand);
+				raise Count_Failed;
+			end if;
+			return y;
+    	end Unreliable_Slow_Add;
 
     task type Transaction_Worker (Initial : Integer; Manager : access Transaction_Manager);
     task body Transaction_Worker is
