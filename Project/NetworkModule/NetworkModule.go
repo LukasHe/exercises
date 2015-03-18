@@ -33,7 +33,7 @@ func sender(sendChannel chan string) {
 			fmt.Println(err)
 			return
 		}
-		//fmt.Println("Send:",message)
+		fmt.Println("Send:",message)
 		time.Sleep(10*time.Millisecond)
 	}		
 }
@@ -64,7 +64,7 @@ func receiver(newOrderChan, doneOrderChan, bidChan chan string) {
 			return
 		}
 		//fmt.Println("Recived", rlen ,"Byte from", remote, ".")
-		//fmt.Println("The message is:",string(receiveBuf[:]))
+		fmt.Println("The message is:",string(receiveBuf[:rlen]))
 		switch {
 			case "D" == string(receiveBuf[0]):
 				doneOrderChan <- string(receiveBuf[1:rlen])

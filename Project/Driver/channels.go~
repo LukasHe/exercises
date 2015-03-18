@@ -2,7 +2,7 @@ package driver
 
 const PORT4             =  3
 const OBSTRUCTION       =  (0x300+23)
-const STOP              =  (0x300+22)
+const BUTTON_STOP       =  (0x300+22)
 const BUTTON_COMMAND1   =  (0x300+21)
 const BUTTON_COMMAND2   =  (0x300+20)
 const BUTTON_COMMAND3   =  (0x300+19)

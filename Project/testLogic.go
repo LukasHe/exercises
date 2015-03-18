@@ -3,6 +3,7 @@ package main
 import "./Logic"
 import "./NetworkModule"
 import "time"
+import "strconv"
 
 
 func main(){
@@ -13,13 +14,13 @@ func main(){
 	bidChan := make(chan string,10)
 	sendChan := make(chan string,10)
 
-	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan)
+	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan)
 	NetworkModule.NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan)
 	time.Sleep(100*time.Millisecond)
-	sendChan <- "DdoneOrder"
-	sendChan <- "NnewOrder"
-	sendChan <- "Bbid"
-	sendChan <- "DdoneOrder"
+	sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "1"
+	sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "2"
+	sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "3"
+
 
 	keepAlive := make(chan int)
 	<- keepAlive
