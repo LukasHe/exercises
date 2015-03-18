@@ -4,6 +4,7 @@ import (
 	"./Driver"
  	"./HardwareControll"
  	"./NetworkModule"
+ 	"./Logic"
  	"time"
  	"strconv"
  )
@@ -33,7 +34,7 @@ func main(){
 	selfOrderChan <- "D" + strconv.Itoa(int(time.Now().UnixNano())) + "3"
 	time.Sleep(10000*time.Millisecond)
 	selfOrderChan <- "D" + strconv.Itoa(int(time.Now().UnixNano())) + "2"
-		time.Sleep(10000*time.Millisecond)
+	time.Sleep(10000*time.Millisecond)
 	selfOrderChan <- "D" + strconv.Itoa(int(time.Now().UnixNano())) + "2"
 	time.Sleep(10000*time.Millisecond)
 	selfOrderChan <- "D" + strconv.Itoa(int(time.Now().UnixNano())) + "0"

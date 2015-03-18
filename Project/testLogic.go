@@ -17,9 +17,9 @@ func main(){
 	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan)
 	NetworkModule.NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan)
 	time.Sleep(100*time.Millisecond)
-	sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "1"
-	sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "2"
-	sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "3"
+	sendChan <- "N" + "_" + strconv.Itoa(int(time.Now().UnixNano())) + "_" + "1"
+	// sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "2"
+	// sendChan <- "N" + strconv.Itoa(int(time.Now().UnixNano())) + "3"
 
 
 	keepAlive := make(chan int)

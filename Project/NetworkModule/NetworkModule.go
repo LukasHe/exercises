@@ -6,12 +6,12 @@ import (
 "time"
 )
 
-func NetworkInit(sendChannel, newOrderChan, doneOrderChan, bidChan chan string){
-	go sender(sendChannel)
+func NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan chan string){
+	go sender(sendChan)
 	go receiver(newOrderChan, doneOrderChan, bidChan)
 }
 
-func sender(sendChannel chan string) {
+func sender(sendChan chan string) {
 	broadcastAddr := "129.241.187.255:22022"
 	message := ""
 	
@@ -26,14 +26,14 @@ func sender(sendChannel chan string) {
 	defer udpBroadcast.Close()
 
 	for {
-		message =<- sendChannel
+		message =<- sendChan
 		_, err = udpBroadcast.Write([]byte(message))
 		if err != nil {
 			fmt.Println("Error writing data to server:", broadcastAddr)
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("Send:",message)
+		//fmt.Println("Send:",message)
 		time.Sleep(10*time.Millisecond)
 	}		
 }
@@ -64,14 +64,14 @@ func receiver(newOrderChan, doneOrderChan, bidChan chan string) {
 			return
 		}
 		//fmt.Println("Recived", rlen ,"Byte from", remote, ".")
-		fmt.Println("The message is:",string(receiveBuf[:rlen]))
+		//fmt.Println("The message is:",string(receiveBuf[:rlen]))
 		switch {
 			case "D" == string(receiveBuf[0]):
-				doneOrderChan <- string(receiveBuf[1:rlen])
+				doneOrderChan <- string(receiveBuf[2:rlen])
 			case "N" == string(receiveBuf[0]):
-				newOrderChan<- string(receiveBuf[1:rlen])
+				newOrderChan<- string(receiveBuf[2:rlen])
 			case "B" == string(receiveBuf[0]):
-				bidChan <- string(receiveBuf[1:rlen])
+				bidChan <- string(receiveBuf[2:rlen]) + "_" + remote.String()
 			default:
 				time.Sleep(10*time.Millisecond)	
 		}

@@ -5,6 +5,7 @@ import (
 "fmt"
 "container/list"
 "strconv"
+"math"
 )
 
 func LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan chan string) {
@@ -13,6 +14,14 @@ func LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan chan string) {
 
 func logic(newOrderChan, doneOrderChan, bidChan, sendChan chan string) {
 	selfOrderList := list.New()
+	//auctionList := list.New()
+
+
+	//OBS CHANGE THIS
+	selfOrderList.PushFront("2")
+	selfOrderList.PushFront("2")
+	selfOrderList.PushFront("2")
+
 
 	for{
 		select {
@@ -21,11 +30,15 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan chan string) {
 				selfOrderList.PushFront(newOrder)
 				fmt.Println(selfOrderList.Len())
 				cost := selfOrderList.Len()
-				sendChan <-  "B" + newOrder[0:19] + strconv.Itoa(cost)
+				sendChan <-  "B" + "_" + newOrder[0:19] + "_" + strconv.Itoa(cost)
 				//calculateCost(newOrder, selfOrderList)
 
 			case costBid := <-bidChan:
-				auction(costBid)
+				fmt.Println(costBid)
+				if (int(time.Now().UnixNano()) - strconv.Atoi(string(costBid[0:19]))) > int(math.Pow10(10)){
+					add _, to Atoi
+				}
+					
 
 			case doneOrder := <-doneOrderChan:
 				checkPendingOrders(doneOrder)
