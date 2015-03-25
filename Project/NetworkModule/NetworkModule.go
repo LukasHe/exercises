@@ -12,7 +12,7 @@ func NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan chan string){
 }
 
 func sender(sendChan chan string) {
-	broadcastAddr := "129.241.187.255:22022"
+	broadcastAddr := "129.241.187.255:22021"
 	message := ""
 	
 	//Connect to broadcastAddr using UDP.
@@ -42,7 +42,7 @@ func receiver(newOrderChan, doneOrderChan, bidChan chan string) {
 	var receiveBuf [1024]byte
 
 	//Create an  UDPAddr struct and listens to the given port.
-	udpAddr, err := net.ResolveUDPAddr("udp", ":22022")
+	udpAddr, err := net.ResolveUDPAddr("udp", ":22021")
 	if err != nil {
 		fmt.Println("Error resolve UDP-address")
 		fmt.Println(err)
