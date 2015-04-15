@@ -57,21 +57,22 @@ func receiver(newOrderChan, doneOrderChan, bidChan chan string) {
 	defer udpReceive.Close()
 
 	for {
-		rlen, remote, err := udpReceive.ReadFromUDP(receiveBuf[:])
+		rlen, remoteIP, err := udpReceive.ReadFromUDP(receiveBuf[:])
 		if err != nil {
-			fmt.Println("error reading from UDP", remote)
+			fmt.Println("error reading from UDP", remoteIP)
 			fmt.Println(err)
 			return
 		}
+
 		//fmt.Println("Recived", rlen ,"Byte from", remote, ".")
 		//fmt.Println("The message is:",string(receiveBuf[:rlen]))
 		switch {
 			case "D" == string(receiveBuf[0]):
-				doneOrderChan <- string(receiveBuf[2:rlen])
+				doneOrderChan <- string(receiveBuf[2:rlen]) + "_" + remoteIP.String()
 			case "N" == string(receiveBuf[0]):
-				newOrderChan<- string(receiveBuf[2:rlen])
+				newOrderChan<- string(receiveBuf[2:rlen]) + "_" + remoteIP.String()
 			case "B" == string(receiveBuf[0]):
-				bidChan <- string(receiveBuf[2:rlen]) + "_" + remote.String()
+				bidChan <- string(receiveBuf[2:rlen]) + "_" + remoteIP.String()
 			default:
 				time.Sleep(10*time.Millisecond)	
 		}

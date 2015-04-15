@@ -2,7 +2,7 @@ package Logic
 
 import (
 "time"
-"fmt"
+// "fmt"
 "container/list"
 "strconv"
 "strings"
@@ -21,15 +21,15 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 	pendingOrders := make(map[int]string)
 
 
-	//OBS CHANGE THIS
+	// OBS CHANGE THIS
 	selfOrderList.PushFront("2")
 	selfOrderList.PushFront("2")
 	selfOrderList.PushFront("2")
 
 	allAddrs, _ := net.InterfaceAddrs()
 	v4Addr := strings.Split(allAddrs[1].String(), "/")
-	selfIP := strings.Split(v4Addr[0],".")
-	selfIP = selfIP[3]
+	completeIP := strings.Split(v4Addr[0],".")
+	selfIP := completeIP[3]
 
 
 	for{
@@ -37,27 +37,23 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 			case newOrder := <-newOrderChan:
 				//fmt.Println(newOrder)
 				//fmt.Println(selfOrderList.Len())
-				splitOrder := strings.Split(newOrder, "_")
-				timeStamp, order := splitOrder[0], splitOrder[1]
+				timeStamp, order, _ := splitMessage(newOrder)
+
 				
 				if _, ok := pendingOrders[timeStamp]; ok == false {
 					pendingOrders[timeStamp] = order
 					//Calculate Cost improve if possible
 					cost := selfOrderList.Len()
-					sendChan <-  "B" + "_" + splitOrder[0] + "_" + strconv.Itoa(cost)
+					sendChan <-  "B" + "_" + strconv.Itoa(timeStamp) + "_" + strconv.Itoa(cost)
 				}
 
 
 
 			case costBid := <-bidChan:
-				splitBid := strings.Split(costBid, "_")
-				timeStamp, bid, bidderIP := splitBid[0], splitBid[1], splitBid[2] 
-				splitIP := strings.Split(bidderIP, ":")
-				splitIP = strings.Split(splitIP[0], ".")
-				bidderIP = splitIP[3]
+				timeStamp, bid, bidderIP := splitMessage(costBid)
 				//fmt.Println("Time:", timeStamp, "Bid:", bid, "IP:", bidderIP)
 
-				if timeStamp, _ := strconv.Atoi(timeStamp); (int(time.Now().UnixNano())) -  timeStamp > int(math.Pow10(10)){
+				if (int(time.Now().UnixNano())) -  timeStamp > int(math.Pow10(10)){
 					break
 				} else if  existingBid, ok := existingBids[timeStamp]; ok{
 					if bid, _ := strconv.Atoi(bid); bid < existingBid{
@@ -76,19 +72,23 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 					
 
 			case doneOrder := <-doneOrderChan:
-				checkPendingOrders(doneOrder)
+				timeStamp, _, _ := splitMessage(doneOrder)
+				delete(pendingOrders, timeStamp)
+				if selfOrderList.Front() == 
+
+
 
 			default:
 				for timeStamp, _ := range existingBids{
 					if (int(time.Now().UnixNano())) - timeStamp > int(math.Pow10(10)){
-						if selfIP = existingIPs[timeStamp]{
+						if selfIP == existingIPs[timeStamp]{
 
 							// Make it more intelligent
-							selfOrderList.PushBack(pendingOrders[timeStamp])
 							if selfOrderList.Len() == 0{
-								floor := pendingOrders[timeStamp][0]
-								selfOrderChan <- floor 
+								floor := string(pendingOrders[timeStamp][0])
+								selfOrderChan <- floor
 							}
+							selfOrderList.PushBack(pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp))
 						}
 
 
@@ -108,14 +108,15 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 }
 
 
-// func calculateCost(newOrder string, selfOrderList list.List) {
-// 	fmt.Println("Cost:", newOrder)
-// }
 
-func auction(costBid string) {
-	fmt.Println("Auction:", costBid)
+func splitMessage(message string) (int, string, string) {
+	splitMsg := strings.Split(message, "_")
+	time, data, remoteIP := splitMsg[0], splitMsg[1], splitMsg[2] 
+	splitIP := strings.Split(remoteIP, ":")
+	splitIP = strings.Split(splitIP[0], ".")
+	IP := splitIP[3]
+	timeStamp, _ := strconv.Atoi(time)
+
+	return timeStamp, data, IP
 }
 
-func checkPendingOrders(doneOrder string) {
-	fmt.Println("Pending:", doneOrder)
-}

@@ -13,8 +13,10 @@ func main(){
 	doneOrderChan := make(chan string,10)
 	bidChan := make(chan string,10)
 	sendChan := make(chan string,10)
+	selfOrderChan := make(chan string,10)
 
-	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan)
+
+	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan)
 	NetworkModule.NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan)
 	time.Sleep(100*time.Millisecond)
 	sendChan <- "N" + "_" + strconv.Itoa(int(time.Now().UnixNano())) + "_" + "1"
