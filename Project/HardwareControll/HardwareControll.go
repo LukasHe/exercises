@@ -6,17 +6,17 @@ import (
 	"strconv"
 	"strings"
 )
-//import "reflect"
 
 func HardwareControllInit(ledOnChan, ledOffChan, sensorChan , internalOrderChan chan int, 
 	motorDirChan, buttonChan, selfOrderChan, sendChan chan string){
-	currentFloor := 1
+	currentFloor := 2
 
 	//This forces the elevator to start at floor 0
-	for currentFloor != 0{
+	for currentFloor != 1{
 		motorDirChan <- "DOWN"
 		currentFloor = <- sensorChan
 	}
+
 	motorDirChan <- "STOP"
 
 	go hardwareControll(ledOnChan, ledOffChan, sensorChan, internalOrderChan, motorDirChan, buttonChan, selfOrderChan,
@@ -37,14 +37,18 @@ func hardwareControll(ledOnChan, ledOffChan, sensorChan, internalOrderChan chan 
 	for{
 		select {
 			case nextOrder = <- selfOrderChan:
+
+				fmt.Println("New order! ", nextOrder)
 				
 				nextOrderSplit := strings.Split(nextOrder, "_")
 				nextOrderFloorDir,nextOrderTimestamp = nextOrderSplit[0],nextOrderSplit[1]
-				nextFloorOrder := int(nextOrderFloorDir[0])
+				nextFloorOrder,_ = strconv.Atoi(string(nextOrderFloorDir[0]))
+				fmt.Println("current: ", currentFloor)
+				fmt.Println("Floor: ", nextFloorOrder)
 
-				if currentFloor < nextFloorOrder && nextFloorOrder < 4{ //Maybe change to a MAXFLOOR
+				if currentFloor < nextFloorOrder && nextFloorOrder <= 4{ //Maybe change to a MAXFLOOR
 					motorDirChan <- "UP"
-				} else if currentFloor > nextFloorOrder && nextFloorOrder >= 0{
+				} else if currentFloor > nextFloorOrder && nextFloorOrder > 0{
 					motorDirChan <- "DOWN"
 				} else if currentFloor == nextFloorOrder {
 					motorDirChan <- "STOP"
@@ -71,6 +75,9 @@ func hardwareControll(ledOnChan, ledOffChan, sensorChan, internalOrderChan chan 
 
 
 			case currentFloor = <- sensorChan:
+
+				fmt.Println("SensorValue: ", currentFloor)
+
 				if currentFloor == nextFloorOrder{
 					motorDirChan <- "STOP"
 					sendChan <- "D" + "_" + nextOrderTimestamp + "_" + nextOrderFloorDir

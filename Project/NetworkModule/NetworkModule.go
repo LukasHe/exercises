@@ -33,7 +33,7 @@ func sender(sendChan chan string) {
 			fmt.Println(err)
 			return
 		}
-		//fmt.Println("Send:",message)
+		fmt.Println("Send:",message)
 		time.Sleep(10*time.Millisecond)
 	}		
 }

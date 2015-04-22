@@ -88,21 +88,19 @@ func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan
 		//Go throug all Sensors and send index of the active ones on channel.
 		for index, floorSensor := range sensorArray{
 			currentSensorValue = int(C.io_read_bit(C.int(floorSensor)))
-			fmt.Println("Reading Sensor:" , sensorArray[index] , " With value: " , currentSensorValue)
 			if oldSensorValue[index] != currentSensorValue{
-				fmt.Println("Sensor at floot:.", index, ":", currentSensorValue)
 				oldSensorValue[index] = currentSensorValue
 				if currentSensorValue == 1 {
-					sensorChan <- index
+					sensorChan <- index+1
 				}
 			}
 		}
+
 		
 		//Go throug all Buttons and send changed buttons on channel.
 		for index, button := range buttonArray{
 			currentButtonValue = int(C.io_read_bit(C.int(button)))
 			if oldButtonValue[index] != currentButtonValue{
-				fmt.Println(buttonNameArray[index], ":", currentButtonValue)
 				oldButtonValue[index] = currentButtonValue
 				if currentButtonValue == 1 {
 					buttonChan <- buttonNameArray[index]
