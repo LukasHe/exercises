@@ -10,11 +10,11 @@ import (
 "net"
 )
 
-func LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan string) {
-	go logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan)
+func LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan string, internalOrderChan chan int) {
+	go logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, internalOrderChan)
 }
 
-func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan string) {
+func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan string, internalOrderChan chan int) {
 	selfOrderList := list.New()
 	existingBids := make(map[int]int)
 	existingIPs := make(map[int]string)
@@ -73,9 +73,20 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 
 			case doneOrder := <-doneOrderChan:
 				timeStamp, _, _ := splitMessage(doneOrder)
+				element := selfOrderList.Front()
+				if element.Value == pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp){
+					selfOrderList.Remove(element)
+					
+					if selfOrderList.Len() > 0{
+						element := selfOrderList.Front()
+						e := element.Value
+						selfOrderChan <- e.(string)
+					}
+				}
 				delete(pendingOrders, timeStamp)
-				if selfOrderList.Front() == 
 
+			case  internalOrder := <-internalOrderChan:
+				selfOrderList.PushBack(internalOrder)
 
 
 			default:
@@ -85,8 +96,7 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 
 							// Make it more intelligent
 							if selfOrderList.Len() == 0{
-								floor := string(pendingOrders[timeStamp][0])
-								selfOrderChan <- floor
+								selfOrderChan <- pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp)
 							}
 							selfOrderList.PushBack(pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp))
 						}
@@ -94,6 +104,13 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 
 						delete(existingBids, timeStamp)
 						delete(existingIPs, timeStamp)
+					}
+				}
+
+				for timeStamp, _ := range pendingOrders{
+					if (int(time.Now().UnixNano())) - timeStamp > int(math.Pow10(10)){
+						sendChan <- "N" + "_" + strconv.Itoa(int(time.Now().UnixNano())) + pendingOrders[timeStamp]
+						delete(pendingOrders, timeStamp)
 					}
 				}
 

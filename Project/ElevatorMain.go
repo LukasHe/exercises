@@ -1,23 +1,39 @@
 package main
-	
 
 import (
-"fmt"
-"time"
-"./NetworkModule"
-"strconv"
-)
+	"./Driver"
+ 	"./HardwareControll"
+ 	"./NetworkModule"
+ 	"./Logic"
+ 	//"time"
+ 	//"strconv"
+ )
 
 func main(){
-	sendChannel := make(chan string, 100)
+	ledOnChan := make(chan int, 10)
+	ledOffChan := make(chan int,10)
+	sensorChan := make(chan int, 10)
 	keepAlive := make(chan int)
+	internalOrderChan := make(chan int,10)
+	
+	motorDirChan := make(chan string, 10)
+	buttonChan := make(chan string, 10)
+	selfOrderChan := make(chan string)
+	sendChan := make(chan string, 10)
+	doneOrderChan := make(chan string, 10)
+	newOrderChan := make(chan string, 10)
+	bidChan := make(chan string, 10)
 
-	go NetworkModule.Sender(sendChannel)
-	go NetworkModule.Receiver()
-	sendChannel <- "something"
-	sendChannel <- "something else"
-	fmt.Println(time.Now().UnixNano())
-	sendChannel <- "D" + strconv.Itoa(int(time.Now().UnixNano())) + "data"
+
+
+	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, internalOrderChan)
+
+	Driver.DriverInit(ledOnChan, ledOffChan, sensorChan, motorDirChan, buttonChan)
+
+	HardwareControll.HardwareControllInit(ledOnChan, ledOffChan, sensorChan , internalOrderChan, 
+	motorDirChan, buttonChan, selfOrderChan, sendChan)
+
+	NetworkModule.NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan)
 
 
 	<-keepAlive
