@@ -10,12 +10,13 @@ import (
  )
 
 func main(){
-	ledOnChan := make(chan int, 10)
-	ledOffChan := make(chan int,10)
+
 	sensorChan := make(chan int, 10)
 	keepAlive := make(chan int)
 	internalOrderChan := make(chan int,10)
 	
+	ledOnChan := make(chan string, 10)
+	ledOffChan := make(chan string,10)
 	motorDirChan := make(chan string, 10)
 	buttonChan := make(chan string, 10)
 	selfOrderChan := make(chan string)
@@ -26,12 +27,11 @@ func main(){
 
 
 
-	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, internalOrderChan)
+	Logic.LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, ledOffChan, internalOrderChan)
 
-	Driver.DriverInit(ledOnChan, ledOffChan, sensorChan, motorDirChan, buttonChan)
+	Driver.DriverInit(sensorChan, ledOnChan, ledOffChan, motorDirChan, buttonChan)
 
-	HardwareControll.HardwareControllInit(ledOnChan, ledOffChan, sensorChan , internalOrderChan, 
-	motorDirChan, buttonChan, selfOrderChan, sendChan)
+	HardwareControll.HardwareControllInit(sensorChan , internalOrderChan, ledOnChan, ledOffChan, motorDirChan, buttonChan, selfOrderChan, sendChan)
 
 	NetworkModule.NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan)
 

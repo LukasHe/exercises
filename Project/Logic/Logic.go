@@ -5,42 +5,39 @@ import (
 "fmt"
 "container/list"
 "strconv"
-"strings"
 "math"
-"net"
+".././NetworkModule"
 )
 
-func LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan string, internalOrderChan chan int) {
-	go logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, internalOrderChan)
+func LogicInit(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, ledOffChan chan string, internalOrderChan chan int) {
+	go logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, ledOffChan, internalOrderChan)
 }
 
-func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan string, internalOrderChan chan int) {
+func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, ledOffChan chan string, internalOrderChan chan int) {
 	selfOrderList := list.New()
 	existingBids := make(map[int]int)
 	existingIPs := make(map[int]string)
 	pendingOrders := make(map[int]string)
+	
 
 
-	allAddrs, _ := net.InterfaceAddrs()
-	v4Addr := strings.Split(allAddrs[1].String(), "/")
-	completeIP := strings.Split(v4Addr[0],".")
-	selfIP := completeIP[3]
 
 	for{
 		select {
 			case newOrder := <-newOrderChan:
-				//fmt.Println(newOrder)
 				lengthCounter := 0
 				cost := 1000
 				//fmt.Println(selfOrderList.Len())
-				timeStamp, order, _ := splitMessage(newOrder)
-
+				timeStamp, origIP, order, internalOrder := NetworkModule.SplitMessage(newOrder)
 				if _, ok := pendingOrders[timeStamp]; ok == false {
-					pendingOrders[timeStamp] = order
-					//Calculate Cost improve if possible
+					pendingOrders[timeStamp] = strconv.Itoa(timeStamp) +  "_" + origIP +  "_" + order +  "_" + "*"
+				if internalOrder == "I" && origIP == NetworkModule.GetOwnIP(){
+					fmt.Println("Iternal")
+					sendChan <-  "B" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + "0" + "_" + NetworkModule.GetOwnIP()
+					break
+				}	
 					for e := selfOrderList.Front(); e != nil; e = e.Next() {
-						esplit := strings.Split(e.Value.(string), "_")
-						floorDir := esplit[0]
+						_, _, floorDir, _ := NetworkModule.SplitMessage(e.Value.(string))
 
 						if floorDir == order{
 							cost = lengthCounter
@@ -50,17 +47,17 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 						lengthCounter = lengthCounter + 1
 					}
 					if cost < selfOrderList.Len(){
-						sendChan <-  "B" + "_" + strconv.Itoa(timeStamp) + "_" + strconv.Itoa(cost)
+						sendChan <-  "B" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + strconv.Itoa(cost) + "_" + NetworkModule.GetOwnIP()
 					} else {
 						cost = selfOrderList.Len()
-						sendChan <-  "B" + "_" + strconv.Itoa(timeStamp) + "_" + strconv.Itoa(cost)
+						sendChan <-  "B" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + strconv.Itoa(cost) + "_" + NetworkModule.GetOwnIP()
 					}
 				}
 
 
 
 			case costBid := <-bidChan:
-				timeStamp, bid, bidderIP := splitMessage(costBid)
+				timeStamp, _, bid, bidderIP := NetworkModule.SplitMessage(costBid)
 				//fmt.Println("Time:", timeStamp, "Bid:", bid, "IP:", bidderIP)
 
 				if (int(time.Now().UnixNano())) -  timeStamp > int(math.Pow10(9)){
@@ -82,95 +79,89 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan chan st
 					
 
 			case doneOrder := <-doneOrderChan:
-				timeStamp, _, _ := splitMessage(doneOrder)
-				element := selfOrderList.Front()
-				if element.Value == pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp){
-					selfOrderList.Remove(element)
-					
-					if selfOrderList.Len() > 0 {
-						element := selfOrderList.Front()
-						e := element.Value
-						fmt.Println("Send to hardware: ", e.(string))
-						selfOrderChan <- e.(string)
+				timeStamp, origIP, order, _ := NetworkModule.SplitMessage(doneOrder)
+				ptrfrontElement := selfOrderList.Front()
+
+				if selfOrderList.Len() > 0 && ptrfrontElement.Value == pendingOrders[timeStamp]{
+					//fmt.Println("Done Order: ", doneOrder)
+					selfOrderList.Remove(ptrfrontElement)
+
+					if selfOrderList.Len() > 0{
+						ptrfrontElement = selfOrderList.Front()
+						frontElement := ptrfrontElement.Value
+						//fmt.Println("Send to hardware: ", frontElement.(string))
+						selfOrderChan <- frontElement.(string)
+					}
+				}
+				if origIP == NetworkModule.GetOwnIP(){
+					if string(order[1]) == "U"{
+						ledOffChan <- "LIGHT_UP" + string(order[0])
+					} else if string(order[1]) == "D"{
+						ledOffChan <- "LIGHT_DOWN" + string(order[0])
+					} else {
+						ledOffChan <- "LIGHT_COMMAND" + string(order[0])
 					}
 				}
 				delete(pendingOrders, timeStamp)
 
-			case  internalOrder := <-internalOrderChan:
-				selfOrderList.PushBack(internalOrder)
-
 
 			default:
 				for timeStamp, _ := range existingBids{
-					if (int(time.Now().UnixNano())) - timeStamp > int(math.Pow10(9)){
-						if selfIP == existingIPs[timeStamp]{
+					if (int(time.Now().UnixNano())) - timeStamp > int(math.Pow10(8)){
+						if NetworkModule.GetOwnIP()  == existingIPs[timeStamp]{
 
-							fmt.Println("We won! ", timeStamp)
+							//fmt.Println("We won! ", timeStamp)
 
-							// Make it more intelligent
 							if selfOrderList.Len() == 0{
-								selfOrderChan <- pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp)
-							}
-	
-						for e := selfOrderList.Front(); e != nil; e = e.Next() {
-							esplit := strings.Split(e.Value.(string), "_")
-							floorDir := esplit[0]
-
-							if floorDir == pendingOrders[timeStamp]{
-								selfOrderList.InsertAfter(pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp), e)
-								break
-								fmt.Println("add middle ", pendingOrders[timeStamp])
-							// } else if e == selfOrderList.Back() {
-							// 	selfOrderList.PushBack(pendingOrders[timeStamp] + "_" + strconv.Itoa(timeStamp))
-							// 	fmt.Println("add to end ", pendingOrders[timeStamp])
+								selfOrderList.PushBack(pendingOrders[timeStamp])
+								selfOrderChan <- pendingOrders[timeStamp]
+							} else {
+								_, _, floorDirInPending, _ := NetworkModule.SplitMessage(pendingOrders[timeStamp])
+								for elementOfList := selfOrderList.Front(); elementOfList != nil; elementOfList = elementOfList.Next() {
+									// fmt.Println("self: ", elementOfList.Value.(string))
+									_, _, floorDirInList, _ := NetworkModule.SplitMessage(elementOfList.Value.(string))
+									// fmt.Println("self: ", floorDirInList)
+									if floorDirInList == floorDirInPending || (string(floorDirInPending[1]) == "I" && floorDirInList[0] == floorDirInPending[0]) {
+										selfOrderList.InsertAfter(pendingOrders[timeStamp], elementOfList)
+										//fmt.Println("add middle ", pendingOrders[timeStamp])
+										break
+									} else if elementOfList == selfOrderList.Back() {
+										selfOrderList.PushBack(pendingOrders[timeStamp])
+										//fmt.Println("add to end ", pendingOrders[timeStamp])
+										break
+									}
+								}
 							}
 						}
-							
-					}
 
 
 						delete(existingBids, timeStamp)
 						delete(existingIPs, timeStamp)
 					}
-				}
+				
 
 				for timeStamp, _ := range pendingOrders{
-					if (int(time.Now().UnixNano())) - timeStamp > 4*int(math.Pow10(10)){
-						sendChan <- "N" + "_" + strconv.Itoa(int(time.Now().UnixNano())) + "_" + pendingOrders[timeStamp]
+					if (int(time.Now().UnixNano())) - timeStamp > int(math.Pow10(10)){
+						_, origIP, order, _ := NetworkModule.SplitMessage(pendingOrders[timeStamp])
+						sendChan <- "N" + "_" + strconv.Itoa(int(time.Now().UnixNano())) + "_" + origIP + "_" + order + "_" + "*"
 						delete(pendingOrders, timeStamp)
 					}
 				}
 
 				
-				for e := selfOrderList.Front(); e != nil; e = e.Next() {
-					esplit := strings.Split(e.Value.(string), "_")
-					timeStamp,_ := strconv.Atoi(esplit[1])
-					if  (int(time.Now().UnixNano())) - timeStamp > 4*int(math.Pow10(10)){
-						selfOrderList.Remove(e)	
-					}
-					
+				for elementOfList := selfOrderList.Front(); elementOfList != nil; elementOfList = elementOfList.Next() {
+					timeStamp, _, _, _ := NetworkModule.SplitMessage(pendingOrders[timeStamp])
+					if  (int(time.Now().UnixNano())) - timeStamp > int(math.Pow10(10)){
+						selfOrderList.Remove(elementOfList)	
+					}	
 				}
-
-				// Check if auction is completed by inspecting timeStamp
-				// Remove done auctions and but winner in correct chanel
-
-
-
 				time.Sleep(10*time.Millisecond)
+			}	
 		}
 	}
 }
 
 
 
-func splitMessage(message string) (int, string, string) {
-	splitMsg := strings.Split(message, "_")
-	time, data, remoteIP := splitMsg[0], splitMsg[1], splitMsg[2] 
-	splitIP := strings.Split(remoteIP, ":")
-	splitIP = strings.Split(splitIP[0], ".")
-	IP := splitIP[3]
-	timeStamp, _ := strconv.Atoi(time)
 
-	return timeStamp, data, IP
-}
 

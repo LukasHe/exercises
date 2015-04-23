@@ -8,8 +8,8 @@ import "fmt"
 import "time"
 
 
-func DriverInit(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan chan string){
-	
+func DriverInit(sensorChan chan int, ledOnChan, ledOffChan, motorDirChan, buttonChan chan string){
+		
 	lightArray :=[...] int {
 		LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1,
 		LIGHT_UP2, LIGHT_DOWN2, LIGHT_COMMAND2,
@@ -31,17 +31,32 @@ func DriverInit(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, button
 	time.Sleep(100*time.Millisecond)
 	
 	// Start the Hardwaredriver as thread
-	go driver(ledOnChan, ledOffChan, sensorChan, motorDirChan, buttonChan)
+	go driver(sensorChan, motorDirChan, ledOnChan, ledOffChan, buttonChan)
 }
 
 
-func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan chan string){
+func driver(sensorChan chan int, motorDirChan, ledOnChan, ledOffChan, buttonChan chan string){
 	
 	sensorArray :=[...]int{
 	SENSOR_FLOOR1, SENSOR_FLOOR2, 
 	SENSOR_FLOOR3, SENSOR_FLOOR4} 
 	oldSensorValue := [4]int{0,0,0,0}
 	currentSensorValue := 0
+
+	buttonLightMap := map[string] int{
+		"LIGHT_STOP":		LIGHT_STOP,
+		"LIGHT_COMMAND1":  	LIGHT_COMMAND1,
+		"LIGHT_COMMAND2":	LIGHT_COMMAND2,
+		"LIGHT_COMMAND3":   LIGHT_COMMAND3,
+		"LIGHT_COMMAND4":   LIGHT_COMMAND4,
+		"LIGHT_UP1":        LIGHT_UP1,
+		"LIGHT_UP2":        LIGHT_UP2,
+		"LIGHT_DOWN2":      LIGHT_DOWN2,
+		"LIGHT_UP3":        LIGHT_UP3,
+		"LIGHT_DOWN3":      LIGHT_DOWN3,
+		"LIGHT_DOWN4":      LIGHT_DOWN4,
+		"LIGHT_DOOR_OPEN":  LIGHT_DOOR_OPEN,
+	}
 
 	buttonNameArray :=[...]string{
 		"BUTTON_COMMAND_1", "BUTTON_COMMAND_2", 
@@ -67,11 +82,14 @@ func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan
 		//Check LED and Motor Channel for updates and apply them to the hardware.
 		select {
 			case ledOnOrder := <-ledOnChan:
-					C.io_set_bit(C.int(ledOnOrder))
+					C.io_set_bit(C.int(buttonLightMap[ledOnOrder]))
+
 			case ledOffOrder := <- ledOffChan:
-					C.io_set_bit(C.int(ledOffOrder))
+				fmt.Println("ledOff: ",ledOffOrder)
+					C.io_clear_bit(C.int(buttonLightMap[ledOffOrder]))
+
 			case motorDir := <-motorDirChan:
-					fmt.Println(motorDir)
+					// fmt.Println(motorDir)
 					if motorDir == "UP"{
 						C.io_clear_bit(MOTORDIR);
 						C.io_write_analog(MOTOR, 2800);
@@ -91,7 +109,22 @@ func driver(ledOnChan, ledOffChan, sensorChan chan int, motorDirChan, buttonChan
 			if oldSensorValue[index] != currentSensorValue{
 				oldSensorValue[index] = currentSensorValue
 				if currentSensorValue == 1 {
-					sensorChan <- index+1
+					floor := index+1
+					switch floor{
+						case 1:
+							C.io_clear_bit(LIGHT_FLOOR_IND1)
+							C.io_clear_bit(LIGHT_FLOOR_IND2)
+						case 2:
+							C.io_clear_bit(LIGHT_FLOOR_IND1)
+							C.io_set_bit(LIGHT_FLOOR_IND2)
+						case 3:
+							C.io_set_bit(LIGHT_FLOOR_IND1)
+							C.io_clear_bit(LIGHT_FLOOR_IND2)
+						case 4:
+							C.io_set_bit(LIGHT_FLOOR_IND1)
+							C.io_set_bit(LIGHT_FLOOR_IND2)
+					}
+					sensorChan <- floor
 				}
 			}
 		}

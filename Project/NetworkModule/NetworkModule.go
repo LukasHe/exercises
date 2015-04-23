@@ -4,6 +4,8 @@ import (
 "fmt"
 "net"
 "time"
+"strings"
+"strconv"
 )
 
 func NetworkInit(sendChan, newOrderChan, doneOrderChan, bidChan chan string){
@@ -68,14 +70,29 @@ func receiver(newOrderChan, doneOrderChan, bidChan chan string) {
 		//fmt.Println("The message is:",string(receiveBuf[:rlen]))
 		switch {
 			case "D" == string(receiveBuf[0]):
-				doneOrderChan <- string(receiveBuf[2:rlen]) + "_" + remoteIP.String()
+				doneOrderChan <- string(receiveBuf[2:rlen]) 
 			case "N" == string(receiveBuf[0]):
-				newOrderChan<- string(receiveBuf[2:rlen]) + "_" + remoteIP.String()
+				newOrderChan<- string(receiveBuf[2:rlen])
 			case "B" == string(receiveBuf[0]):
-				bidChan <- string(receiveBuf[2:rlen]) + "_" + remoteIP.String()
+				bidChan <- string(receiveBuf[2:rlen])
 			default:
 				time.Sleep(10*time.Millisecond)	
 		}
 	}
 
+}
+
+func GetOwnIP() (string) {
+	allAddrs, _ := net.InterfaceAddrs()
+	v4Addr := strings.Split(allAddrs[1].String(), "/")
+	completeIP := strings.Split(v4Addr[0],".")
+	return completeIP[3]
+}
+
+func SplitMessage(message string) (int, string, string, string) {
+	splitMsg := strings.Split(message, "_")
+	time, originIP, data, remoteIP := splitMsg[0], splitMsg[1], splitMsg[2], splitMsg[3]
+	timeStamp, _ := strconv.Atoi(time)
+
+	return timeStamp, originIP, data, remoteIP
 }
