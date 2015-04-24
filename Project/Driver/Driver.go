@@ -7,7 +7,7 @@ import "C"
 import "fmt"
 import "time"
 
-
+//Initialize the Driver.
 func DriverInit(sensorChan chan int, ledOnChan, ledOffChan, motorDirChan, buttonChan chan string){
 		
 	lightArray :=[...] int {
@@ -77,10 +77,12 @@ func driver(sensorChan chan int, motorDirChan, ledOnChan, ledOffChan, buttonChan
 	oldButtonValue := []int{0,0,0,0,0,0,0,0,0,0,0}
 	currentButtonValue := 0
 	
+
 	for{
 	
-		//Check LED and Motor Channel for updates and apply them to the hardware.
+		//Check LED- and Motor-Channel for updates and apply them to the elevator.
 		select {
+
 			case ledOnOrder := <-ledOnChan:
 					C.io_set_bit(C.int(buttonLightMap[ledOnOrder]))
 
@@ -89,52 +91,45 @@ func driver(sensorChan chan int, motorDirChan, ledOnChan, ledOffChan, buttonChan
 					C.io_clear_bit(C.int(buttonLightMap[ledOffOrder]))
 
 			case motorDir := <-motorDirChan:
-					// fmt.Println(motorDir)
+
 					if motorDir == "UP"{
 						C.io_clear_bit(MOTORDIR);
 						C.io_write_analog(MOTOR, 2800);
+
 					} else if motorDir == "DOWN"{
 						C.io_set_bit(MOTORDIR);
 						C.io_write_analog(MOTOR, 2800);
+
 					} else{
 						C.io_write_analog(MOTOR, 0);
 					}
+
 			default:
 				time.Sleep(10*time.Millisecond)
 		}
 		
-		//Go throug all Sensors and send index of the active ones on channel.
+		//Go through all Sensors and send index of the active ones on channel.
 		for index, floorSensor := range sensorArray{
 			currentSensorValue = int(C.io_read_bit(C.int(floorSensor)))
+
 			if oldSensorValue[index] != currentSensorValue{
 				oldSensorValue[index] = currentSensorValue
+
 				if currentSensorValue == 1 {
-					floor := index+1
-					switch floor{
-						case 1:
-							C.io_clear_bit(LIGHT_FLOOR_IND1)
-							C.io_clear_bit(LIGHT_FLOOR_IND2)
-						case 2:
-							C.io_clear_bit(LIGHT_FLOOR_IND1)
-							C.io_set_bit(LIGHT_FLOOR_IND2)
-						case 3:
-							C.io_set_bit(LIGHT_FLOOR_IND1)
-							C.io_clear_bit(LIGHT_FLOOR_IND2)
-						case 4:
-							C.io_set_bit(LIGHT_FLOOR_IND1)
-							C.io_set_bit(LIGHT_FLOOR_IND2)
-					}
+					floor := index + 1
 					sensorChan <- floor
+					setFloorLED(floor)
 				}
 			}
 		}
 
-		
-		//Go throug all Buttons and send changed buttons on channel.
+		//Go throug all Buttons and send buttonspresses on channel.
 		for index, button := range buttonArray{
 			currentButtonValue = int(C.io_read_bit(C.int(button)))
+
 			if oldButtonValue[index] != currentButtonValue{
 				oldButtonValue[index] = currentButtonValue
+
 				if currentButtonValue == 1 {
 					buttonChan <- buttonNameArray[index]
 				}
@@ -142,4 +137,26 @@ func driver(sensorChan chan int, motorDirChan, ledOnChan, ledOffChan, buttonChan
 		}			
 	}
 }
-			
+	
+//Set Floor LEDs.		
+func setFloorLED(floor int){
+
+	switch floor{
+
+		case 1:
+			C.io_clear_bit(LIGHT_FLOOR_IND1)
+			C.io_clear_bit(LIGHT_FLOOR_IND2)
+
+		case 2:
+			C.io_clear_bit(LIGHT_FLOOR_IND1)
+			C.io_set_bit(LIGHT_FLOOR_IND2)
+
+		case 3:
+			C.io_set_bit(LIGHT_FLOOR_IND1)
+			C.io_clear_bit(LIGHT_FLOOR_IND2)
+
+		case 4:
+			C.io_set_bit(LIGHT_FLOOR_IND1)
+			C.io_set_bit(LIGHT_FLOOR_IND2)
+	}
+}
