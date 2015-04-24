@@ -82,17 +82,26 @@ func logic(newOrderChan, doneOrderChan, bidChan, sendChan, selfOrderChan, ledOff
 				timeStamp, origIP, order, _ := NetworkModule.SplitMessage(doneOrder)
 				ptrfrontElement := selfOrderList.Front()
 
+
 				if selfOrderList.Len() > 0 && ptrfrontElement.Value == pendingOrders[timeStamp]{
 					//fmt.Println("Done Order: ", doneOrder)
+					_, _, oldFront, _ := NetworkModule.SplitMessage(ptrfrontElement.Value)
 					selfOrderList.Remove(ptrfrontElement)
 
-					if selfOrderList.Len() > 0{
+					ptrfrontElement := selfOrderList.Front()
+					_, _, newFront, _ := NetworkModule.SplitMessage(ptrfrontElement.Value)
+					if  selfOrderList.Len() == 0 || order != orderFront{
+					//OPEN
+					} else {
 						ptrfrontElement = selfOrderList.Front()
 						frontElement := ptrfrontElement.Value
 						//fmt.Println("Send to hardware: ", frontElement.(string))
 						selfOrderChan <- frontElement.(string)
 					}
 				}
+
+
+
 				if origIP == NetworkModule.GetOwnIP(){
 					if string(order[1]) == "U"{
 						ledOffChan <- "LIGHT_UP" + string(order[0])
