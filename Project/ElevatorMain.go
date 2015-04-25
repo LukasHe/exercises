@@ -7,6 +7,8 @@ import (
  	"./Logic"
  )
 
+//The main function calles all the modules of the elevator and spawn the channels that will act as
+//the main communication between the modules. This keep on running since "keepAlive" will wait.
 func main(){
 	sensorChan 			:= make(chan int, 10)
 	internalOrderChan	:= make(chan int, 10)

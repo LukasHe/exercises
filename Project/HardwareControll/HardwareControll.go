@@ -19,6 +19,7 @@ func HardwareControllInit(sensorChan , internalOrderChan chan int, ledOnChan, le
 	}
 
 	motorDirChan <- "STOP"
+	fmt.Println("Ready for action!")
 	go hardwareControll(sensorChan, internalOrderChan, ledOnChan, ledOffChan, motorDirChan, buttonChan, selfOrderChan,sendChan, currentFloor)
 }
 
@@ -50,8 +51,8 @@ func hardwareControll(sensorChan, internalOrderChan chan int, ledOnChan, ledOffC
 
 				} else if currentFloor == nextFloorOrder {
 					motorDirChan <- "STOP"
-					fmt.Println("current: ", currentFloor, "nextFloorOrder: ", nextFloorOrder)
-					sendChan <- "D" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + nextOrderFloorDir + "_" + "*"
+					//fmt.Println("current: ", currentFloor, "nextFloorOrder: ", nextFloorOrder)
+					sendChan <- "D" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + nextOrderFloorDir + "_" + NetworkModule.GetOwnIP()
 
 				} else if nextOrderFloorDir == "WAIT" {
 					ledOnChan <- "LIGHT_DOOR_OPEN"
@@ -91,7 +92,7 @@ func hardwareControll(sensorChan, internalOrderChan chan int, ledOnChan, ledOffC
 
 				if currentFloor == nextFloorOrder{
 					motorDirChan <- "STOP"
-					sendChan <- "D" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + nextOrderFloorDir + "_" + "*"
+					sendChan <- "D" + "_" + strconv.Itoa(timeStamp) + "_" + origIP + "_" + nextOrderFloorDir + "_" + NetworkModule.GetOwnIP()
 				}
 
 			default:
